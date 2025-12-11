@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <title>WhatsApp Bot</title>
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+
+    <style>
+        body {
+            font-family: Arial;
+            padding: 20px;
+        }
+        #qr {
+            margin-top: 20px;
+        }
+        #qr img {
+            width: 250px;
+            border: 2px solid #ddd;
+            padding: 10px;
+        }
+        button {
+            padding: 8px 15px;
+            margin-right: 10px;
+            cursor: pointer;
+        }
+        #groups {
+            margin-top: 20px;
+        }
+        .group {
+            padding: 5px 10px;
+            border-bottom: 1px solid #eee;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h2>Status: <span id="status">unknown</span></h2>
+
+    <button onclick="start()">Démarrer</button>
+    <button onclick="logout()">Logout</button>
+    <button onclick="loadGroups()">Lister mes groupes</button>
+
+    <div id="qr"></div>
+
+    <div id="groups"></div>
+
+    <script>
+        // Connexion au serveur WebSocket
+        const socket = io();
+
+        socket.on("connect", () => {
+            console.log("WebSocket connecté");
+        });
+
+        // Mise à jour du statut
+        socket.on("status", (s) => {
+            document.getElementById("status").innerText = s;
+            // Quand c'est connecté, on efface l'affichage du QR code
+            if (s === "connected") document.getElementById("qr").innerHTML = "";
+        });
+
+        // Affichage du QR code
+        socket.on("qr", (qr) => {
+            if (!qr) {
+                document.getElementById("qr").innerHTML = "";
+                return;
+            }
+            document.getElementById("qr").innerHTML =
+                `<img src="${qr}" alt="QR Code WhatsApp">`;
+        });
+
+        // Appels aux routes Express
+        function start() {
+            fetch("/start");
+        }
+
+        function logout() {
+            fetch("/logout");
+        }
+
+        async function loadGroups() {
+            document.getElementById("groups").innerHTML = "<h3>Chargement des groupes...</h3>";
+            try {
+                const res = await fetch("/groups");
+                const groups = await res.json();
+    
+                const div = document.getElementById("groups");
+                div.innerHTML = "<h3>Groupes :</h3>";
+    
+                if (!groups.length) {
+                    div.innerHTML += "<p>Aucun groupe trouvé ou bot déconnecté.</p>";
+                    return;
+                }
+    
+                groups.forEach(g => {
+                    div.innerHTML += `<div class="group">${g.name} (${g.size} membres)</div>`;
+                });
+            } catch (error) {
+                document.getElementById("groups").innerHTML = `<h3>Erreur de chargement :</h3><p>${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>

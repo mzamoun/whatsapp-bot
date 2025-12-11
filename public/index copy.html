@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Bot Anti-Spam</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+        }
+
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        #status {
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .open {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .closed,
+        .logged-out {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .qr-pending {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .syncing {
+            background-color: #cce5ff;
+            color: #004085;
+        }
+
+        #qrcode {
+            margin: 20px auto;
+            width: 250px;
+            height: 250px;
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+
+        #logs {
+            border: 1px solid #ccc;
+            padding: 10px;
+            height: 200px;
+            overflow-y: scroll;
+            background: #eee;
+            font-size: 0.9em;
+        }
+
+        #groupList {
+            max-height: 150px;
+            overflow-y: scroll;
+            border: 1px solid #ccc;
+            padding: 5px;
+            margin-bottom: 10px;
+        }
+
+        #scanControls {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🤖 WhatsApp Bot Anti-Spam</h1>
+
+        <div id="status">Statut du Bot: Initialisation...</div>
+        <button id="startButton">Démarrer le Bot</button>
+        <button id="logoutButton" disabled>Se Déconnecter</button>
+
+        <h2>Code QR (pour connexion)</h2>
+        <div id="qrcode"></div>
+
+        <h2>Logs d'activité</h2>
+        <div id="logs"></div>
+
+        <h2>Groupes connus</h2>
+        <button id="listGroupsBtn">Lister les groupes</button>
+        <div id="groupList"></div>
+
+        <h2>Scan d'un groupe</h2>
+        <div id="scanControls">
+            <input type="text" id="groupJid" placeholder="JID du groupe" style="width: 100%; margin-bottom:5px;">
+            <input type="datetime-local" id="startDate" style="width: 100%; margin-bottom:5px;">
+            <button id="scanGroupBtn">Scanner les messages</button>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        const startButton = document.getElementById('startButton');
+        const logoutButton = document.getElementById('logoutButton');
+        const statusDiv = document.getElementById('status');
+        const qrcodeDiv = document.getElementById('qrcode');
+        const logsDiv = document.getElementById('logs');
+        const listGroupsBtn = document.getElementById('listGroupsBtn');
+        const groupListDiv = document.getElementById('groupList');
+        const scanGroupBtn = document.getElementById('scanGroupBtn');
+        const groupJidInput = document.getElementById('groupJid');
+        const startDateInput = document.getElementById('startDate');
+        let qrCode = null;
+
+        // Désactiver le bouton par défaut
+        // Pour empêcher l'utilisateur de spammer le bouton 'Lister les groupes' trop tôt
+        listGroupsBtn.disabled = true;
+        listGroupsBtn.textContent = 'Lister les groupes (Attente Bot)'; // Ajouté pour clarté
+        logoutButton.disabled = true; // Désactivé au départ
+
+        // --- Fonction mise à jour statut ---
+        function updateStatus({ message, status }) {
+            statusDiv.textContent = `Statut du Bot: ${message}`;
+            statusDiv.className = '';
+            statusDiv.classList.add(status);
+            qrcodeDiv.style.display = (status === 'qr-pending') ? 'block' : 'none';
+
+            // Gestion de l'état des boutons
+            if (status === 'open') {
+                startButton.disabled = true;
+                listGroupsBtn.disabled = false; // Maintenant, lister les groupes est possible
+                logoutButton.disabled = false;
+            } else if (status === 'qr-pending' || status === 'syncing') {
+                // Le bot est actif/en attente, mais le store n'est pas prêt pour Lister les groupes
+                startButton.disabled = true;
+                listGroupsBtn.disabled = true;
+                logoutButton.disabled = false;
+            } else { // closed, logged-out, error
+                startButton.disabled = false;
+                listGroupsBtn.disabled = true;
+                logoutButton.disabled = true;
+            }
+
+        }
+
+        // --- Gestion Socket.io ---
+        socket.on('status', updateStatus);
+        socket.on('qr-code', (qrData) => {
+            qrcodeDiv.innerHTML = '';
+            qrCode = new QRCode(qrcodeDiv, {
+                text: qrData, width: 250, height: 250, colorDark: "#000000", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.H
+            });
+            updateStatus({ message: 'Scannez le code QR.', status: 'qr-pending' });
+        });
+        socket.on('log', (message) => {
+            const time = new Date().toLocaleTimeString();
+            logsDiv.innerHTML += `<div>[${time}] ${message}</div>`;
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+        });
+
+        // --- Bouton démarrage ---
+        startButton.addEventListener('click', () => {
+            socket.emit('start-bot');
+            startButton.disabled = true;
+            updateStatus({ message: 'Démarrage demandé...', status: 'qr-pending' });
+        });
+
+        // --- Bouton déconnexion ---
+        logoutButton.addEventListener('click', () => {
+            socket.emit('logout-bot');
+            updateStatus({ message: 'Déconnexion en cours...', status: 'closed' });
+        });
+
+        // --- Liste des groupes ---
+        listGroupsBtn.addEventListener('click', () => {
+            socket.emit('list-groups');
+        });
+
+        // --- Scan d'un groupe à partir d'une date ---
+        scanGroupBtn.addEventListener('click', () => {
+            const jid = groupJidInput.value.trim();
+            const startDate = startDateInput.value;
+            if (!jid || !startDate) {
+                alert('Veuillez renseigner le JID et la date de départ.');
+                return;
+            }
+            socket.emit('scan-group', { jid, startDate });
+        });
+
+        // --- Affichage des groupes ---
+        socket.on('groups-list', (groups) => {
+            groupListDiv.innerHTML = '';
+            groups.forEach(g => {
+                const div = document.createElement('div');
+                div.textContent = `${g.name} -> ${g.jid}`;
+                groupListDiv.appendChild(div);
+            });
+        });
+    </script>
+</body>
+
+</html>

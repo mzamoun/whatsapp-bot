@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>WhatsApp Bot</title>
+<style>
+body { font-family: Arial, sans-serif; padding: 20px; }
+button { margin: 5px; padding: 10px 20px; }
+#qr img { max-width: 300px; margin: 10px 0; }
+#log { height: 400px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; background: #f9f9f9; }
+.status { font-weight: bold; }
+</style>
+<script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+<h1>WhatsApp Bot</h1>
+<div>
+<button onclick="startBot()">Démarrer Bot</button>
+<button onclick="logoutBot()">Déconnecter</button>
+</div>
+<div id="qr"></div>
+<div id="log"></div>
+
+<script>
+const socket = io();
+const logDiv = document.getElementById('log');
+const qrDiv = document.getElementById('qr');
+
+function addLog(msg) {
+    logDiv.innerHTML += msg + '<br>';
+    logDiv.scrollTop = logDiv.scrollHeight;
+}
+
+socket.on('status', (data) => addLog(`[STATUS] ${data.message}`));
+socket.on('log', (msg) => addLog(msg));
+
+socket.on('qr', (qr) => {
+    const qrImage = 'data:image/png;base64,' + qr;
+    qrDiv.innerHTML = `<img src="${qrImage}" />`;
+});
+
+function startBot() {
+    addLog('[ACTION] Démarrage du bot...');
+    socket.emit('start-bot');
+}
+
+function logoutBot() {
+    addLog('[ACTION] Déconnexion du bot...');
+    socket.emit('logout-bot');
+}
+</script>
+</body>
+</html>

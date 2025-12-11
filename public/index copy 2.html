@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Bot WhatsApp Baileys</title>
+<script src="/socket.io/socket.io.js"></script>
+<style>
+body { font-family: Arial; margin: 20px; }
+button { margin: 5px; padding: 10px 15px; }
+#log { border: 1px solid #ccc; height: 400px; overflow-y: scroll; padding: 10px; }
+input { padding:5px; margin:5px; }
+</style>
+</head>
+<body>
+<h1>Bot WhatsApp Baileys</h1>
+
+<button id="start">Démarrer le bot</button>
+<button id="logout">Déconnecter le bot</button>
+<button id="listGroups">Lister les groupes</button>
+<br><br>
+
+<input id="groupJid" placeholder="JID du groupe" size="40">
+<input id="startDate" type="date">
+<button id="scan">Scanner le groupe</button>
+
+<h2>Logs :</h2>
+<div id="log"></div>
+
+<script>
+const socket = io();
+
+function log(msg) {
+    const div = document.getElementById('log');
+    div.innerHTML += msg + "<br>";
+    div.scrollTop = div.scrollHeight;
+}
+
+document.getElementById('start').onclick = () => socket.emit('start-bot');
+document.getElementById('logout').onclick = () => socket.emit('logout-bot');
+document.getElementById('listGroups').onclick = () => socket.emit('list-groups');
+
+socket.on('status', s => log(`[STATUS] ${s.message}`));
+socket.on('log', l => log(l));
+
+socket.on('groups-list', groups => {
+    log("📋 Groupes :");
+    groups.forEach(g => log(`- ${g.name} (${g.jid})`));
+});
+
+document.getElementById('scan').onclick = () => {
+    const jid = document.getElementById('groupJid').value;
+    const date = document.getElementById('startDate').value;
+    if(!jid || !date) return alert("JID et date requis");
+    socket.emit('scan-group', { jid, startDate: date });
+}
+</script>
+</body>
+</html>

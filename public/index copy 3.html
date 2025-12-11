@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bot WhatsApp - Interface</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0; padding: 0;
+        background: #f5f5f5;
+    }
+    header {
+        background: #4CAF50;
+        color: white;
+        padding: 10px;
+        text-align: center;
+    }
+    main {
+        padding: 10px;
+    }
+    #status {
+        margin-bottom: 10px;
+        font-weight: bold;
+    }
+    #qr img {
+        max-width: 100%;
+        display: block;
+        margin: 10px auto;
+    }
+    #logs {
+        height: 300px;
+        overflow-y: auto;
+        background: #111;
+        color: #0f0;
+        padding: 10px;
+        font-family: monospace;
+        border-radius: 5px;
+        margin-bottom: 10px;
+    }
+    button {
+        margin: 5px;
+        padding: 10px 15px;
+        font-size: 16px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+    button:hover { opacity: 0.9; }
+    #controls { display: flex; flex-wrap: wrap; gap: 5px; }
+    input[type=text], input[type=date] {
+        padding: 8px;
+        margin: 5px 0;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+    }
+    #groups-list {
+        margin: 10px 0;
+    }
+</style>
+</head>
+<body>
+
+<header>
+    <h1>Bot WhatsApp Interface</h1>
+</header>
+
+<main>
+    <div id="status">[STATUS] Déconnecté</div>
+    <div id="qr"></div>
+
+    <div id="controls">
+        <button onclick="startBot()">Démarrer le bot</button>
+        <button onclick="listGroups()">Lister les groupes</button>
+        <button onclick="logoutBot()">Déconnexion</button>
+        <input type="text" id="scanJid" placeholder="JID du groupe">
+        <input type="date" id="scanDate">
+        <button onclick="scanGroup()">Scanner ce groupe</button>
+    </div>
+
+    <div id="groups-list"></div>
+
+    <h3>Logs :</h3>
+    <div id="logs"></div>
+</main>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io();
+const logsDiv = document.getElementById('logs');
+const statusDiv = document.getElementById('status');
+const qrDiv = document.getElementById('qr');
+const groupsListDiv = document.getElementById('groups-list');
+
+// --- Affichage des logs ---
+socket.on('log', msg => {
+    const line = document.createElement('div');
+    line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+    logsDiv.appendChild(line);
+    logsDiv.scrollTop = logsDiv.scrollHeight;
+});
+
+// --- Affichage du status ---
+socket.on('status', ({message, status}) => {
+    statusDiv.textContent = `[STATUS] ${message}`;
+});
+
+// --- Affichage du QR code ---
+socket.on('qr-code', qr => {
+    qrDiv.innerHTML = `<img src="data:image/png;base64,${qr}"/>`;
+});
+
+// --- Affichage des groupes ---
+socket.on('groups-list', groups => {
+    groupsListDiv.innerHTML = '<b>Groupes :</b><br>' + groups.map(g => `${g.name} (${g.jid})`).join('<br>');
+});
+
+// --- Actions boutons ---
+function startBot() {
+    socket.emit('start-bot');
+}
+
+function listGroups() {
+    socket.emit('list-groups');
+}
+
+function logoutBot() {
+    socket.emit('logout-bot');
+}
+
+function scanGroup() {
+    const jid = document.getElementById('scanJid').value.trim();
+    const date = document.getElementById('scanDate').value;
+    if (!jid || !date) {
+        alert('Veuillez saisir le JID du groupe et la date');
+        return;
+    }
+    socket.emit('scan-group', { jid, startDate: date });
+}
+</script>
+
+</body>
+</html>

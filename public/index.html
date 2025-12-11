@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>WhatsApp Bot</title>
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f4f4f9;
+        }
+
+        h2 {
+            border-bottom: 2px solid #ccc;
+            padding-bottom: 5px;
+            margin-top: 20px;
+        }
+
+        #qr {
+            margin-top: 20px;
+        }
+
+        #qr img {
+            width: 250px;
+            border: 2px solid #ddd;
+            padding: 10px;
+            background-color: white;
+        }
+
+        button {
+            padding: 8px 15px;
+            margin-right: 10px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .control-section {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 20px;
+            background-color: white;
+            border-radius: 8px;
+        }
+
+        /* Styles pour la Table */
+        #groups-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        #groups-table th,
+        #groups-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        #groups-table th {
+            background-color: #f0f0f0;
+        }
+
+        /* Styles pour la Log */
+        #log-container {
+            margin-top: 20px;
+        }
+
+        #log {
+            height: 300px;
+            overflow-y: scroll;
+            border: 1px solid #ccc;
+            padding: 10px;
+            background-color: #333;
+            color: #0f0;
+            font-family: 'Courier New', Courier, monospace;
+            white-space: pre-wrap;
+            font-size: 12px;
+        }
+
+        .spam-result {
+            padding: 5px 0;
+            border-bottom: 1px dotted #555;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>WhatsApp Bot Interface</h1>
+
+    <div class="control-section">
+        <h2>Statut et Connexion</h2>
+        <p>Statut: <span id="status">unknown</span></p>
+        <p id="sync-status" style="font-weight: bold;"></p>
+
+        <button onclick="start()">Démarrer</button>
+        <button onclick="logout()">Logout</button>
+        <div id="qr"></div>
+    </div>
+
+    <div class="control-section">
+        <h2>1. Lister et Filtrer les Groupes</h2>
+        <button onclick="loadGroups()">Lister mes groupes</button>
+        <div id="groups-list"></div>
+
+        <h3>Filtrage des messages (Point 2)</h3>
+        <p>JID(s) à surveiller (un par ligne, ex: 1234567890@g.us). Laisser vide pour surveiller TOUS les messages.</p>
+        <textarea id="jid-filter" rows="5" cols="50" placeholder="Liste des JID de groupe..."></textarea><br>
+        <button onclick="applyJidFilter()">Appliquer le filtre JID</button>
+        <p id="monitoring-status">Statut du filtre : Tous les groupes sont surveillés.</p>
+    </div>
+
+    <div class="control-section">
+        <h2>3. Détection et Traitement du Spam</h2>
+        <p>Attention : Le scan historique est limité aux 50 derniers messages par groupe sans base de données.</p>
+
+        <label for="start-date">Date de début du scan (Optionnel):</label>
+        <input type="date" id="start-date" value=""><br><br>
+
+        <label for="spam-text">Texte Spam à chercher (texte obligatoire) :</label>
+        <input type="text" id="spam-text" placeholder="Ex: Gagnez 1000$ rapidement"><br><br>
+
+        <button onclick="startSpamScan()">Lancer le Scan Spam</button>
+
+        <div id="log-container">
+            <h3>Log des Spams trouvés :</h3>
+            <div id="log">En attente de scan...</div>
+        </div>
+    </div>
+
+
+    <script>
+        const socket = io();
+        const monitoringStatusEl = document.getElementById("monitoring-status");
+
+        const syncStatusEl = document.getElementById("sync-status");
+
+        // Initialise la date de début du scan à "hier" par défaut
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        document.getElementById('start-date').valueAsDate = yesterday;
+
+
+        socket.on("connect", () => {
+            console.log("WebSocket connecté");
+        });
+
+        socket.on("status", (s) => {
+            document.getElementById("status").innerText = s;
+            if (s === "connected") document.getElementById("qr").innerHTML = "";
+        });
+
+        socket.on("qr", (qr) => {
+            if (!qr) return;
+            document.getElementById("qr").innerHTML =
+                `<img src="${qr}" alt="QR Code WhatsApp">`;
+        });
+
+        socket.on("sync.progress", (progress) => {
+            if (progress.status === 'syncing' && progress.total > 0) {
+                const percent = Math.round((progress.current / progress.total) * 100);
+                syncStatusEl.innerHTML = `🔄 **Synchronisation des chats en cours : ${progress.current}/${progress.total} (${percent}%)**`;
+                syncStatusEl.style.color = 'orange';
+            } else if (progress.status === 'finished') {
+                syncStatusEl.innerHTML = `✅ **Fin de synchronisation !** ${progress.total} chats chargés.`;
+                syncStatusEl.style.color = 'green';
+            }
+        });
+
+        function logToBrowser(message, isError = false) {
+            const logDiv = document.getElementById("log");
+            const entry = document.createElement("div");
+            entry.className = "spam-result";
+            entry.style.color = isError ? '#f00' : '#0f0';
+            entry.innerText = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logDiv.prepend(entry);
+        }
+
+        // ---------------------------------------------------------
+        // Fonctions pour les contrôles de connexion/déconnexion
+        // ---------------------------------------------------------
+
+        function start() {
+            fetch("/start");
+        }
+
+        function logout() {
+            fetch("/logout");
+        }
+
+        // ---------------------------------------------------------
+        // 1. Lister les groupes dans une table
+        // ---------------------------------------------------------
+
+        async function loadGroups() {
+            const groupsListDiv = document.getElementById("groups-list");
+            groupsListDiv.innerHTML = "<p>Chargement des groupes...</p>";
+
+            try {
+                const res = await fetch("/groups");
+                const data = await res.json();
+
+                console.log("res : ", res, "data : ", data)
+
+                if (res.status === 400 && data.error && data.error.includes("synchronisation")) {
+                    // Message spécifique si les chats ne sont pas prêts
+                    groupsListDiv.innerHTML = `<p style="color:orange;">🔄 **Synchronisation en cours.** Veuillez patienter quelques secondes et réessayer de cliquer sur 'Lister mes groupes'.</p>`;
+                    return;
+                }
+
+                if (data.error) throw new Error(data.error);
+
+                const groups = data.groups || [];
+                const monitored = data.monitored || [];
+
+                if (!groups.length) {
+                    groupsListDiv.innerHTML = "<p>Aucun groupe trouvé.</p>";
+                    return;
+                }
+
+                let tableHTML = '<table id="groups-table"><thead><tr><th>NUM</th><th>NOM</th><th>JID</th><th>NB_MEMBRES</th><th>SURVEILLÉ</th></tr></thead><tbody>';
+
+                groups.forEach(g => {
+                    const isMonitored = monitored.includes(g.id);
+                    tableHTML += `
+                        <tr>
+                            <td>${g.num}</td>
+                            <td>${g.name}</td>
+                            <td>${g.id}</td>
+                            <td>${g.size}</td>
+                            <td style="color: ${isMonitored ? 'green' : 'gray'};">${isMonitored ? 'Oui' : 'Non'}</td>
+                        </tr>
+                    `;
+                });
+                tableHTML += '</tbody></table>';
+
+                groupsListDiv.innerHTML = tableHTML;
+
+                // Mettre à jour le statut du filtre
+                updateMonitoringStatus(monitored.length);
+
+            } catch (error) {
+                groupsListDiv.innerHTML = `<p style="color:red;">Erreur: ${error.message}. Vérifiez la connexion du bot.</p>`;
+            }
+        }
+
+        function updateMonitoringStatus(count) {
+            if (count > 0) {
+                monitoringStatusEl.innerText = `${count} groupe(s) spécifique(s) surveillé(s).`;
+                monitoringStatusEl.style.color = 'orange';
+            } else {
+                monitoringStatusEl.innerText = "Tous les groupes sont surveillés (filtre désactivé).";
+                monitoringStatusEl.style.color = 'green';
+            }
+        }
+
+        // ---------------------------------------------------------
+        // 2. Filtrage JID
+        // ---------------------------------------------------------
+
+        document.getElementById("jid-filter").value = "120363330958851627@g.us"
+
+        async function applyJidFilter() {
+            const jidText = document.getElementById("jid-filter").value;
+
+            try {
+                const res = await fetch("/set-monitoring-groups", {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: jidText
+                });
+                const data = await res.json();
+
+                if (data.ok) {
+                    alert(`Filtre appliqué : ${data.count} JID(s) enregistrés.`);
+                    // Recharger la liste des groupes pour mettre à jour le statut
+                    loadGroups();
+                } else {
+                    alert("Erreur lors de l'application du filtre.");
+                }
+            } catch (e) {
+                alert("Erreur de connexion au serveur pour appliquer le filtre.");
+            }
+        }
+
+        // ---------------------------------------------------------
+        // 3. Traitement du Spam
+        // ---------------------------------------------------------
+
+        const my_input_spam = document.getElementById("spam-text");
+        my_input_spam.value = "nouveau groupe de partage de conseils en bourse pour 2025"
+        my_input_spam.style.width = "500px";
+        my_input_spam.style.height = "30px";
+
+
+        async function startSpamScan() {
+            const startDate = document.getElementById("start-date").value;
+            const searchText = document.getElementById("spam-text").value.trim();
+            const logDiv = document.getElementById("log");
+
+            if (!searchText) {
+                alert("Veuillez saisir le texte de spam à rechercher.");
+                return;
+            }
+
+            logDiv.innerHTML = "<div style='color: yellow;'>Lancement du scan... (Peut prendre quelques secondes)</div>";
+
+            try {
+                const res = await fetch("/scan-for-spam", {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        startDateString: startDate,
+                        searchText: searchText
+                    })
+                });
+                const data = await res.json();
+
+                if (data.error) {
+                    logToBrowser(`Erreur du scan: ${data.error}`, true);
+                    return;
+                }
+
+                logDiv.innerHTML = `<div style='color: cyan;'>Scan terminé. ${data.results.length} spam(s) trouvé(s). (${data.warning})</div>`;
+
+                if (data.results.length === 0) {
+                    logToBrowser("Aucun spam correspondant trouvé.");
+                    return;
+                }
+
+                data.results.forEach(r => {
+                    const actionText = r.action_taken ? ` | ACTION: ${r.action_taken}` : (r.isAdmin ? " | ATTENTION: Erreur d'action admin" : " | PAS ADMIN: Aucune action");
+                    logToBrowser(`[${r.group_name}] USER: ${r.sender} | MSG: "${r.message}" ${actionText}`);
+                });
+
+            } catch (e) {
+                logToBrowser(`Erreur lors de l'exécution du scan: ${e.message}`, true);
+            }
+        }
+    </script>
+</body>
+
+</html>
