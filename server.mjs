@@ -160,7 +160,7 @@ async function handleSpamAction(jid, msg, meta) {
     try {
         // 1. Log dans le groupe (optionnel, pour alerter qu'il s'agit d'un auto-spam)
         await sock.sendMessage(jid, {
-            text: `🚨 Auto-SPAM détecté (message du bot).\nLe message a été supprimé. bot isAdmin : ${isAdmin}`
+            text: `🚨 Auto-SPAM détecté (message du bot).\nLe message va etre supprimé si Bot est Admin. Or bot.admin = ${isAdmin}`
         });
         // 2. Supprimer son propre message
         console.log("av suppresion msg ", msg.key, "jid", jid)
