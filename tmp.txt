@@ -1,0 +1,63 @@
+node server.mjs 
+Server running on http://localhost:3000
+Client connecté
+Client connecté
+{"level":30,"time":"2025-12-11T23:01:50.544Z","pid":51020,"hostname":"ASUS-TUF-Gaming-A17","class":"baileys","browser":["Chrome","Safari","10.15.7"],"helloMsg":{"clientHello":{"ephemeral":"cWA1Jvi9bhrqe+pjHNxGVvoBjp1Hw9KsktMnRd6vkGE="}},"msg":"connected to WA"}
+{"level":30,"time":"2025-12-11T23:01:50.620Z","pid":51020,"hostname":"ASUS-TUF-Gaming-A17","class":"baileys","node":{"username":"33662366914","passive":false,"userAgent":{"platform":"WEB","appVersion":{"primary":2,"secondary":3000,"tertiary":1027934701},"mcc":"000","mnc":"000","osVersion":"0.1","device":"Desktop","osBuildNumber":"0.1","releaseChannel":"RELEASE","localeLanguageIso6391":"en","localeCountryIso31661Alpha2":"US"},"webInfo":{"webSubPlatform":"WEB_BROWSER"},"connectType":"WIFI_UNKNOWN","connectReason":"USER_ACTIVATED","device":79,"pull":true},"msg":"logging in..."}
+{"level":30,"time":"2025-12-11T23:01:51.648Z","pid":51020,"hostname":"ASUS-TUF-Gaming-A17","class":"baileys","msg":"offline preview received"}
+{"level":30,"time":"2025-12-11T23:01:51.650Z","pid":51020,"hostname":"ASUS-TUF-Gaming-A17","class":"baileys","msg":"handled 1 offline messages/notifications"}
+{"level":30,"time":"2025-12-11T23:01:51.650Z","pid":51020,"hostname":"ASUS-TUF-Gaming-A17","class":"baileys","msg":"Connection is now AwaitingInitialSync, buffering events"}
+{"level":30,"time":"2025-12-11T23:01:51.651Z","pid":51020,"hostname":"ASUS-TUF-Gaming-A17","class":"baileys","msg":"History sync is enabled, awaiting notification with a 20s timeout."}
+{"level":30,"time":"2025-12-11T23:01:51.652Z","pid":51020,"hostname":"ASUS-TUF-Gaming-A17","class":"baileys","msg":"23 pre-keys found on server"}
+{"level":30,"time":"2025-12-11T23:01:52.001Z","pid":51020,"hostname":"ASUS-TUF-Gaming-A17","class":"baileys","msg":"opened connection to WA"}
+✔ Connecté
+[IGNORE] Message provenant d'un canal (Newsletter): 120363172997847444@newsletter
+{"level":40,"time":"2025-12-11T23:02:11.660Z","pid":51020,"hostname":"ASUS-TUF-Gaming-A17","class":"baileys","msg":"Timeout in AwaitingInitialSync, forcing state to Online and flushing buffer"}
+
+
+msg:  {
+  key: {
+    remoteJid: '120363405490376771@g.us',
+    fromMe: false,
+    id: 'A5DD0D9F7643B1F13425817711B84662',
+    senderLid: undefined,
+    senderPn: undefined,
+    participant: '59197685297286@lid',
+
+
+sock.user :  {
+  id: '33662366914:80@s.whatsapp.net',
+  name: 'mourad مراد zamoun زعمون',
+  lid: '59197685297286:80@lid'
+}
+
+sender of msg:  59197685297286@lid
+botLID:  59197685297286:80@lid
+botJID:  33662366914:80@s.whatsapp.net
+
+ participants: [
+    {
+      id: '120722991132828@lid',
+      jid: '33762035404@s.whatsapp.net',
+      lid: '120722991132828@lid',
+      admin: null
+    },
+    {
+      id: '59197685297286@lid',
+      jid: '33662366914@s.whatsapp.net',
+      lid: '59197685297286@lid',
+      admin: 'superadmin'
+    },
+    {
+      id: '53125104832591@lid',
+      jid: '213770228785@s.whatsapp.net',
+      lid: '53125104832591@lid',
+      admin: null
+    },
+    {
+      id: '186771031728318@lid',
+      jid: '213550411062@s.whatsapp.net',
+      lid: '186771031728318@lid',
+      admin: null
+    }
+  ],

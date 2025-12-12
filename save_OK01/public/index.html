@@ -127,7 +127,7 @@
         <label for="start-date">Date de début du scan (Optionnel):</label>
         <input type="date" id="start-date" value=""><br><br>
 
-        <label for="spam-text">Mots clés du Spam à chercher (texte obligatoire) :</label>
+        <label for="spam-text">Texte Spam à chercher (texte obligatoire) :</label>
         <input type="text" id="spam-text" placeholder="Ex: Gagnez 1000$ rapidement"><br><br>
 
         <button onclick="startSpamScan()">Lancer le Scan Spam</button>
@@ -137,50 +137,6 @@
             <div id="log">En attente de scan...</div>
         </div>
     </div>
-
-    <h2>2. Scan avancé des groupes</h2>
-
-    <div class="control-section">
-        <label>JID du groupe :</label><br>
-        <input id="scan-jid" type="text" value="120363330958851627@g.us" placeholder="ex: 12345-67890@g.us" style="width:300px"><br><br>
-
-        <label>Date de début (AAAA-MM-JJ HH:MM):</label><br>
-        <input id="scan-date" type="datetime-local" value="2025-12-10T00:00"><br><br>
-
-        <label>Mots clés à rechercher (spam):</label><br>
-        <input id="scan-text" type="text" value="groupe actions bourse chat whatsapp com" style="width:300px"><br><br>
-
-        <button onclick="runAdvancedScan()">Lancer Scan</button>
-
-        <h3>Résultat :</h3>
-        <pre id="scan-result" style="background:#000;color:#0f0;padding:10px;height:200px;overflow:auto;"></pre>
-    </div>
-
-    <script>
-        async function runAdvancedScan() {
-            const jid = document.getElementById("scan-jid").value.trim();
-            const startDate = document.getElementById("scan-date").value;
-            const spamText = document.getElementById("scan-text").value.trim();
-
-            const resultBox = document.getElementById("scan-result");
-            resultBox.textContent = "Scan en cours...";
-
-            const res = await fetch("/advanced-scan", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    jid,
-                    startDate,
-                    spamText
-                })
-            });
-
-            const data = await res.json();
-            resultBox.textContent = JSON.stringify(data, null, 2);
-        }
-    </script>
-
-
 
 
     <script>
@@ -342,7 +298,7 @@
         // ---------------------------------------------------------
 
         const my_input_spam = document.getElementById("spam-text");
-        my_input_spam.value = "groupe actions bourse chat whatsapp com"
+        my_input_spam.value = "nouveau groupe de partage de conseils en bourse pour 2025"
         my_input_spam.style.width = "500px";
         my_input_spam.style.height = "30px";
 

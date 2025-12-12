@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>WhatsApp Bot</title>
+<style>
+body { font-family: sans-serif; margin: 20px; }
+#logs { height: 400px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; background: #f9f9f9; }
+button { margin: 5px; padding: 10px 15px; }
+#qr { margin: 10px 0; }
+</style>
+</head>
+<body>
+<h2>WhatsApp Bot</h2>
+
+<div>
+<button id="startBotBtn">Démarrer Bot</button>
+<button id="logoutBtn">Déconnecter Bot</button>
+<button id="listGroupsBtn">Liste des Groupes</button>
+<input type="text" id="scanJid" placeholder="JID du groupe">
+<input type="datetime-local" id="scanDate">
+<button id="scanBtn">Scanner Groupe</button>
+</div>
+
+<div id="qr"></div>
+<div id="logs"></div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io();
+const logsDiv = document.getElementById('logs');
+function log(msg){ logsDiv.innerHTML += msg + '<br>'; logsDiv.scrollTop = logsDiv.scrollHeight; }
+
+socket.on('connect', () => log('[SOCKET] Connecté au serveur'));
+socket.on('disconnect', () => log('[SOCKET] Déconnecté du serveur'));
+socket.on('log', msg => log(msg));
+socket.on('status', s => log(`[STATUS] ${s.message}`));
+socket.on('qr-code', dataUrl => {
+    document.getElementById('qr').innerHTML = `<img src="${dataUrl}" width="200">`;
+});
+
+document.getElementById('startBotBtn').onclick = () => {
+    log('[ACTION] Démarrage du bot...');
+    socket.emit('start-bot');
+};
+
+document.getElementById('logoutBtn').onclick = () => {
+    log('[ACTION] Déconnexion du bot...');
+    socket.emit('logout-bot');
+    document.getElementById('qr').innerHTML = '';
+};
+
+document.getElementById('listGroupsBtn').onclick = () => {
+    log('[ACTION] Liste des groupes demandée...');
+    socket.emit('list-groups');
+};
+
+document.getElementById('scanBtn').onclick = () => {
+    const jid = document.getElementById('scanJid').value;
+    const date = document.getElementById('scanDate').value;
+    if (!jid || !date) return alert('JID et date requis');
+    log(`[ACTION] Scan groupe ${jid} depuis ${date}...`);
+    socket.emit('scan-group', { jid, startDate: date });
+};
+
+socket.on('groups-list', groups => {
+    log('📋 Groupes connus :');
+    groups.forEach(g => log(`- ${g.name} (${g.jid})`));
+});
+</script>
+</body>
+</html>
