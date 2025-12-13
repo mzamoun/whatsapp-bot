@@ -131,6 +131,9 @@ async function fetchMessagesSince(jid, fromDate) {
  * @returns {Promise<string>} Résultat de l'action
  */
 async function handleSpamAction(jid, msg, meta) {
+
+    console.log("Message spam detected : msg.key ", msg.key, " jid:", jid)
+
     const sender = msg.key.participant || msg.key.remoteJid;
     const botJID = sock.user.id; // JID du bot
     let botLID = sock.user.lid;
@@ -157,22 +160,31 @@ async function handleSpamAction(jid, msg, meta) {
 
     console.log("isSenderBot=", isSenderBot)
 
+    // let msgBot = `🚨 BOT : Auto-SPAM détecté.\nLe message va etre supprimé car Bot est Admin ici.\n`
+    let msgBot = `Message spam supprimé par admin.\n`
+    // msgBot += `msg.key = ${msg.key}\n jid = ${jid}`
+    if(!isAdmin) msgBot = ""
+
     try {
         // 1. Log dans le groupe (optionnel, pour alerter qu'il s'agit d'un auto-spam)
-        await sock.sendMessage(jid, {
-            text: `🚨 Auto-SPAM détecté (message du bot).\nLe message va etre supprimé si Bot est Admin. Or bot.admin = ${isAdmin}`
-        });
-        // 2. Supprimer son propre message
-        console.log("av suppresion msg ", msg.key, "jid", jid)
+        // on ne le fait que lorsqu'on est admin afin de ne pas trop spamer !
+        if(isAdmin) {
+            await sock.sendMessage(jid, {
+                text: msgBot
+            });
 
-        try {
-            // msg.key est l'objet Key complet du message reçu
-            let x = await sock.sendMessage(jid, { delete: msg.key });
-            // action_taken = "Message supprimé.";
-            console.log("Message deleted x=", x)
-        } catch (e) {
-            // action_taken = `Erreur de suppression: ${e.message}`;
-            console.log(`Erreur de suppression: ${e.message}`)
+            // 2. Supprimer son propre message
+            console.log("av suppresion msg ", msg.key, "jid", jid)
+    
+            try {
+                // msg.key est l'objet Key complet du message reçu
+                let x = await sock.sendMessage(jid, { delete: msg.key });
+                // action_taken = "Message supprimé.";
+                console.log("Message deleted x=", x)
+            } catch (e) {
+                // action_taken = `Erreur de suppression: ${e.message}`;
+                console.log(`Erreur de suppression: ${e.message}`)
+            }
         }
 
         // return "Auto-spam (Bot). Message supprimé uniquement.";
