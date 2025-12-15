@@ -1,0 +1,28 @@
+src/
+│
+├── server.mjs              # ENTRY POINT
+├── app.mjs                 # Express + Socket.io
+│
+├── bot/
+│   ├── bot.state.mjs       # état global (sock, status, flags)
+│   ├── bot.start.mjs       # startBot()
+│   ├── bot.events.mjs      # connection.update, messages.upsert, chats.set
+│
+├── spam/
+│   ├── spam.config.mjs     # SPAM_TEXT_TO_CHECK
+│   ├── spam.matcher.mjs    # containsAllWordsOfOneLine
+│   ├── spam.actions.mjs    # handleSpamAction
+│   ├── spam.processor.mjs  # processSpamMessage
+│   └── spam.scan.mjs       # scanGroupMessagesSince
+│
+├── routes/
+│   ├── bot.routes.mjs      # /start /status /logout
+│   ├── groups.routes.mjs   # /groups /set-monitoring-groups
+│   └── scan.routes.mjs     # /scan-for-spam /advanced-scan
+│
+├── utils/
+│   ├── date.utils.mjs      # getFormattedDateTime
+│   └── fs.utils.mjs
+│
+└── config/
+    └── constants.mjs       # AUTH_FOLDER, PORT

@@ -8,8 +8,8 @@ import { Boom } from "@hapi/boom";
 import { useMultiFileAuthState } from "@whiskeysockets/baileys";
 import fs from "fs";
 import http from "http";
-import { Server } from "socket.io";
 import qrcode from "qrcode"; // Ajout de l'import qrcode manquant
+import { Server } from "socket.io";
 
 const app = express();
 const server = http.createServer(app);
@@ -32,9 +32,30 @@ let syncProgress = { current: 0, total: 0, status: 'idle' }; // {current: i, tot
 const AUTH_FOLDER = "./auth";
 
 // TEXTE DE SPAM À SURVEILLER : les mots cles du spam
-const SPAM_TEXT_TO_CHECK = "groupe bourse actions chat whatsapp"
+let SPAM_TEXT_TO_CHECK = "groupe bourse actions https chat whatsapp com "
+SPAM_TEXT_TO_CHECK += "\n groupe bourse française gratuit https chat whatsapp com"
 
-const SPAM_TAB = ["groupe", "bourse", "actions", "chat", "whatsapp"];
+function containsAllWordsOfOneLine(text, spamText) {
+  if (!text) return false;
+
+  // normalisation (minuscule + suppression espaces multiples)
+  const normalizedText = text.toLowerCase();
+
+  const lines = spamText
+    .toLowerCase()
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => line.length > 0);
+
+  // au moins une ligne doit matcher
+  return lines.some(line => {
+    const words = line.split(/\s+/);
+
+    // tous les mots de la ligne doivent être présents
+    return words.every(word => normalizedText.includes(word));
+  });
+}
+
 
 /**
  * Vérifie si le texte fourni contient TOUS les mots de la liste SPAM_TAB.
@@ -346,7 +367,7 @@ async function processSpamMessage(msg, searchText, meta = null) {
 
     let tab_spam = searchText.toLowerCase().split(" ");
 
-    if (containsAllSpamWords(text, searchText)) {
+    if (containsAllWordsOfOneLine(text, searchText)) {
         console.log("🚨 SPAM détecté !");
     } else {
         return null;
@@ -560,7 +581,7 @@ async function startBot() {
 
             // -------------------- Détection de spam --------------------
 
-            if (containsAllSpamWords(text, SPAM_TEXT_TO_CHECK) && isGroup) {
+            if (containsAllWordsOfOneLine(text, SPAM_TEXT_TO_CHECK) && isGroup) {
                 try {
                     if (!groupMeta) {
                         groupMeta = await sock.groupMetadata(jid);
