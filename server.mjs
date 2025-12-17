@@ -32,8 +32,17 @@ let syncProgress = { current: 0, total: 0, status: 'idle' }; // {current: i, tot
 const AUTH_FOLDER = "./auth";
 
 // TEXTE DE SPAM À SURVEILLER : les mots cles du spam
+/*
+Voici le tout nouveau groupe de conseils en bourse pour 2025 !
+
+Investisseurs et amis intéressés par les actions sont invités à rejoindre notre groupe de 
+discussion gratuit pour obtenir les derniers conseils en matière d'investissement 
+en actions et en devises ! 🏆
+
+*/
 let SPAM_TEXT_TO_CHECK = "groupe bourse actions https chat whatsapp com "
 SPAM_TEXT_TO_CHECK += "\n groupe bourse française gratuit https chat whatsapp com"
+SPAM_TEXT_TO_CHECK += "\n Investisseurs actions rejoindre groupe discussion conseils investissement https chat whatsapp com"
 
 function containsAllWordsOfOneLine(text, spamText) {
   if (!text) return false;
