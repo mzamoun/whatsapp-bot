@@ -56,13 +56,21 @@ function containsAllWordsOfOneLine(text, spamText) {
     .map(line => line.trim())
     .filter(line => line.length > 0);
 
-  // au moins une ligne doit matcher
-  return lines.some(line => {
-    const words = line.split(/\s+/);
+    console.log("lines of spam : ", lines )
 
-    // tous les mots de la ligne doivent être présents
-    return words.every(word => normalizedText.includes(word));
-  });
+  // au moins une ligne doit matcher
+//   return lines.some(line => {
+//     const words = line.split(/\s+/);
+
+//     // tous les mots de la ligne doivent être présents
+//     return words.every(word => normalizedText.includes(word));
+//   });
+
+  //  
+  for(let line of lines) {
+    if(containsAllSpamWords(text, line) ) return true 
+  }
+  return false 
 }
 
 
@@ -74,6 +82,7 @@ function containsAllWordsOfOneLine(text, spamText) {
  * @returns {boolean} - Vrai si tous les mots sont trouvés, faux sinon.
  */
 function containsAllSpamWords(text, spamWords) {
+    console.log("containsAllSpamWords : text : ", text , " spamWords :", spamWords)
     if (!text || !spamWords || spamWords.length === 0) {
         return false;
     }
@@ -167,7 +176,7 @@ async function handleSpamAction(jid, msg, meta) {
     const sender = msg.key.participant || msg.key.remoteJid;
     const botJID = sock.user.id; // JID du bot
     let botLID = sock.user.lid;
-    botLID = botLID.replace(":80", "");
+    botLID = botLID.replace(/:.*@/, "@");
 
     console.log("sender :", sender)
     console.log("botLID :", botLID)
@@ -377,7 +386,7 @@ async function processSpamMessage(msg, searchText, meta = null) {
     let tab_spam = searchText.toLowerCase().split(" ");
 
     if (containsAllWordsOfOneLine(text, searchText)) {
-        console.log("🚨 SPAM détecté !");
+        console.log("🚨 SPAM détecté ! 1");
     } else {
         return null;
     }
@@ -438,8 +447,8 @@ async function scanGroupMessagesSince(jid, searchText, startDateString) {
 // ---------------------------------------------------------------------------
 // ▶ LANCER le bot
 // ---------------------------------------------------------------------------
-async function startBot() {
-    if (isConnecting) {
+async function startBot(isForce = false ) {
+    if (isConnecting && !isForce ) {
         console.log("⚠️ Le bot est déjà en cours de connexion/démarrage.");
         return;
     }
@@ -591,6 +600,7 @@ async function startBot() {
             // -------------------- Détection de spam --------------------
 
             if (containsAllWordsOfOneLine(text, SPAM_TEXT_TO_CHECK) && isGroup) {
+                console.log("🚨 SPAM détecté ! 2");
                 try {
                     if (!groupMeta) {
                         groupMeta = await sock.groupMetadata(jid);
@@ -842,5 +852,6 @@ io.on("connection", (socket) => {
 
 // ---------------------------------------------------------------------------
 server.listen(3000, () => {
+    startBot(true)
     console.log("Server running on http://localhost:3000");
 });
